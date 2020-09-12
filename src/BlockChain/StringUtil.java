@@ -1,10 +1,13 @@
 package BlockChain;
 import java.security.*;
+import java.util.ArrayList;
 import java.util.Base64;
+import com.google.gson.GsonBuilder;
+import java.util.List;
 
 public class StringUtil {
   
-    public static String applySha256(String input) {
+    public static String applySha256(String input) { //Transforma os Hashs que são calculados em Hexadecimal
         try{
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(input.getBytes("UTF-8"));
@@ -22,7 +25,8 @@ public class StringUtil {
         }
     }
    
-    public static byte[] applyECDSASig(PrivateKey privateKey, String input) {
+    public static byte[] applyECDSASig(PrivateKey privateKey, String input) { 
+                // Gera a assinatura aplicando na criptografia ECDSA e retorna o valor em Bytes
 		Signature dsa;
 		byte[] output = new byte[0];
 		try {
@@ -40,6 +44,7 @@ public class StringUtil {
 	
 	
 	public static boolean verifyECDSASig(PublicKey publicKey, String data, byte[] signature) {
+            //Valida a assinatura
 		try {
 			Signature ecdsaVerify = Signature.getInstance("ECDSA", "BC");
 			ecdsaVerify.initVerify(publicKey);
@@ -50,11 +55,43 @@ public class StringUtil {
 		}
 	}
 
+        public static String getJson(Object o) {
+		return new GsonBuilder().setPrettyPrinting().create().toJson(o);
+	}
+	
+	public static String getDificultyString(int difficulty) {
+		return new String(new char[difficulty]).replace('\0', '0');
+	}
+        
 	public static String getStringFromKey(Key key) {
 		return Base64.getEncoder().encodeToString(key.getEncoded());
 	}
-    
+        
+        public static String getMerkleRoot(ArrayList<Transaction> transactions) {
+		int count = transactions.size();
+		
+		List<String> previousTreeLayer = new ArrayList<String>();
+		for(Transaction transaction : transactions) {
+			previousTreeLayer.add(transaction.transactionId);
+		}
+		List<String> treeLayer = previousTreeLayer;
+		
+		while(count > 1) {
+			treeLayer = new ArrayList<String>();
+			for(int i=1; i < previousTreeLayer.size(); i+=2) {
+				treeLayer.add(applySha256(previousTreeLayer.get(i-1) + previousTreeLayer.get(i)));
+			}
+			count = treeLayer.size();
+			previousTreeLayer = treeLayer;
+		}
+		
+		String merkleRoot = (treeLayer.size() == 1) ? treeLayer.get(0) : "";
+		return merkleRoot;
+	}
 }
+
+        
+        
 
 
 
